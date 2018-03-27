@@ -43,6 +43,15 @@ finaldata$Subject<-as.factor(finaldata$Subject)
 final_melted<-melt(finaldata,id=c("Subject","Activity"))
 #recasting the data by taking mean of both veriable
 final_mean<-dcast(final_melted,Subject+Activity~ variable,mean)
+
+#creating readable coulmn names
+ names(final_mean)<-gsub("^t", "time", names(final_mean))
+ names(final_mean)<-gsub("^f", "frequency", names(final_mean))
+ names(final_mean)<-gsub("Acc", "Accelerometer", names(final_mean))
+ names(final_mean)<-gsub("Gyro", "Gyroscope", names(final_mean))
+ names(final_mean)<-gsub("Mag", "Magnitude", names(final_mean))
+ names(final_mean)<-gsub("BodyBody", "Body", names(final_mean))
+
 #writing the data to tidy.txt file
 write.table(final_mean,"tidy.txt",row.names = F,quote = F)
 
