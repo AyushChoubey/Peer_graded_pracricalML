@@ -1,0 +1,125 @@
+---
+title: "Practical Machine Learning Project"
+author: "Ayush Kumar"
+date: "October 20, 2018"
+output: html_document
+---
+
+The goal of your project is to predict the manner in which they did the exercise. This is the "classe" variable in the training set. You may use any of the other variables to predict with. You should create a report describing how you built your model, how you used cross-validation, what you think the expected out of sample error is, and why you made the choices you did. You will also use your prediction model to predict 20 different test cases.
+
+Loading some useful libraries
+```{r}
+library(caret)
+library(rpart)
+library(rpart.plot)
+library(rattle)
+library(e1071)
+library(randomForest)
+library(RColorBrewer)
+```
+Downloading data
+```{r,cache=TRUE}
+TrainingData <- read.csv(url("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"),header=TRUE)
+dim(TrainingData)
+str(TrainingData)
+TestData <- read.csv(url("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"),header=TRUE)
+dim(TestData)
+
+```
+
+Here, we can see that some variable have most of the values as NA they will not create any effect to the model so better delete them also some columns are not using that should be deleted so, now i am going to clean the data
+
+#Data Cleaning
+
+```{r}
+# we select the coulumn having NA values more than the 90%
+delete <- which(colSums(is.na(TrainingData) |TrainingData=="")>0.9*dim(TrainingData)[1]) 
+Newtraining<-TrainingData[,-delete]
+#checking varience if they are near zero
+nearZeroVar(Newtraining,saveMetrics = T)
+
+# also deleting irrelevant columns
+Newtraining<-Newtraining[,-c(1:7)]
+# checking the new dimension
+dim(Newtraining)
+```
+
+
+we should also do the same for the Test data
+
+
+```{r}
+# we select the coulumn having NA values more than the 90%
+delete <- which(colSums(is.na(TestData) |TestData=="")>0.9*dim(TestData)[1]) 
+Newtest<-TestData[,-delete]
+# also deleting irrelivent coulumns
+Newtest<-Newtest[,-c(1:7)]
+# checking new dimension
+dim(Newtest)
+```
+
+
+
+Dividing the training data into test and train data 
+
+
+
+```{r}
+set.seed(4444)
+part <- createDataPartition(Newtraining$classe, p=0.75, list=FALSE)
+train2 <- Newtraining[part,]
+test2<- Newtraining[-part,]
+dim(train2)
+dim(test2)
+
+```
+
+
+
+Now we have the cleaned data now we n apply the algorithms
+We will use here the tree classification as it is non-linear
+But we have to do cross-validation as to get more training data within the training data
+
+
+###Using Class tree
+```{r}
+crossV<-trainControl(method ="cv",number = 5)
+treeModel<-train(classe~.,data=train2,method="rpart",trControl=crossV)
+fancyRpartPlot(treeModel$finalModel)
+```
+
+
+Now, we will see the confusion matrix
+
+
+
+```{r,cache=T}
+train3<- predict(treeModel,newdata=test2)
+
+confusion1 <- confusionMatrix(test2$classe,train3)
+
+confusion1$table
+confusion1$overall[1]
+
+```
+
+###Usig random forest method
+
+```{r,cache=T}
+model_RF <- train(classe~., data=train2, method="rf", trControl=crossV, verbose=FALSE)
+trainpred <- predict(model_RF,newdata=test2)
+
+confMatRF <- confusionMatrix(test2$classe,trainpred)
+
+# display confusion matrix and model accuracy
+confMatRF$table
+confMatRF$overall[1]
+```
+
+we,can say that Random forest is best so,we will use it as the predicton algorithm
+```{r}
+FinalTestPred <- predict(model_RF,newdata=TestData)
+FinalTestPred
+
+
+```
